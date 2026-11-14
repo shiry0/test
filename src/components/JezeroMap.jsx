@@ -4,6 +4,7 @@ import { MARS_IMAGERY } from '../data/marsImagery'
 import metadata from '../data/jezeroDem.json'
 import MARS_ROUTES from '../data/marsRoutes.js'
 import { SIM3464_BOUNDS, SIM3464_IMAGE, SIM3464_SOURCE } from '../data/sim3464'
+import { JEZERO_FORMATION, JEZERO_NAME_ORIGIN, JEZERO_NAMING_SOURCE, JEZERO_PLACE_NAMES } from '../data/jezeroStory'
 import './jezeroMap.css'
 
 const RADIUS = 3396190
@@ -142,6 +143,11 @@ export default function JezeroMap({ onBack }) {
       <div><button className="jezero-map-back" onClick={onBack}><ArrowLeft size={17} /> Back to 3D Mars</button><h1>Jezero region</h1><p>Follow the valleys, crater rim, and nearby named terrain. Drag to explore the wider map.</p></div>
       <div className="jezero-map-source"><span>2D MARS MAP</span><strong>{resolution < 2 ? resolution.toFixed(1) : Math.round(resolution)} m / screen pixel</strong><small>{imagery === 'relief' ? '20 m CTX elevation source' : inHiriseBounds ? 'HiRISE mosaic available here' : 'Outside HiRISE coverage · CTX imagery'}</small></div>
     </div>
+    <section className="jezero-origin" aria-labelledby="jezero-origin-title">
+      <h2 id="jezero-origin-title">How Jezero came to be</h2>
+      <div><p>{JEZERO_FORMATION}</p><p>{JEZERO_NAME_ORIGIN}</p></div>
+      <a href={JEZERO_NAMING_SOURCE} target="_blank" rel="noopener noreferrer">Jezero name origin · USGS <ArrowUpRight size={14} /></a>
+    </section>
     <div className="jezero-map-toolbar">
       <div className="jezero-layer-switch" aria-label="Map layer"><button className={imagery === 'imagery' ? 'active' : ''} onClick={() => setImagery('imagery')}>Orbital imagery</button><button className={imagery === 'relief' ? 'active' : ''} onClick={() => setImagery('relief')}>Elevation relief</button><button className={imagery === 'geology' ? 'active' : ''} onClick={() => setImagery('geology')}>USGS geology</button></div>
       {imagery === 'geology' && <label className="jezero-geology-opacity">Opacity <input type="range" min="0.2" max="1" step="0.05" value={geologyOpacity} onChange={event => setGeologyOpacity(Number(event.target.value))} /><span>{Math.round(geologyOpacity * 100)}%</span></label>}
@@ -166,5 +172,9 @@ export default function JezeroMap({ onBack }) {
       </div>
       <div className="jezero-map-legend"><strong>{imagery === 'relief' ? 'Elevation relief' : imagery === 'geology' ? 'USGS SIM 3464' : 'Mars orbital imagery'}</strong><span>{imagery === 'relief' ? '20 m CTX DEM in mapped area' : imagery === 'geology' ? 'Mapped units · 1:75,000 · approximate alignment' : 'HiRISE 25 cm · CTX 6 m · MOLA context'}</span><small>{imagery === 'geology' ? 'USGS notes a 100–200 m offset from the rover operations mosaic.' : tileError ? 'Live tiles unavailable; local relief remains visible.' : 'High detail is limited to mapped coverage.'}</small><a href={imagery === 'geology' ? SIM3464_SOURCE : perseverance.missionUrl} target="_blank" rel="noreferrer">{imagery === 'geology' ? 'USGS map ↗' : 'NASA live rover map ↗'}</a></div>
     </div>
+    <section className="jezero-names" aria-labelledby="jezero-names-title">
+      <h2 id="jezero-names-title">Names across Jezero</h2>
+      <div>{JEZERO_PLACE_NAMES.map(place => <article key={place.name}><h3>{place.name}</h3><p>{place.story}</p></article>)}</div>
+    </section>
   </main>
 }

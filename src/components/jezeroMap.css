@@ -61,3 +61,16 @@
 .jezero-rover-marker .jezero-landmark-dot{background:#f8c489;box-shadow:0 0 0 4px #0008}
 .jezero-map-legend a{font-size:10px;color:#f2a477;white-space:nowrap}
 @media(max-width:800px){.jezero-map-legend a{width:100%}}
+.jezero-origin{display:grid;grid-template-columns:minmax(180px,.8fr) minmax(280px,1.8fr) auto;align-items:start;gap:24px;border-top:1px solid #ffffff29;padding:22px 0 24px;margin-bottom:17px}
+.jezero-origin h2,.jezero-names h2{font-size:17px;line-height:1.3;letter-spacing:-.02em;font-weight:600}
+.jezero-origin p{max-width:64ch;color:#c7cfcc;font-size:11px;line-height:1.75}
+.jezero-origin p+p{margin-top:8px}
+.jezero-origin>a{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;color:#f2a477;font-size:10px;padding:3px 0;text-decoration:underline;text-underline-offset:4px}
+.jezero-origin>a:hover,.jezero-names a:hover{color:#ffc29d}
+.jezero-names{margin-top:38px;border-top:1px solid #ffffff29;padding-top:23px}
+.jezero-names>div{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));column-gap:28px;margin-top:16px}
+.jezero-names article{border-top:1px solid #ffffff1c;padding:14px 0 19px}
+.jezero-names h3{font-size:12px;font-weight:600;line-height:1.45}
+.jezero-names p{color:#bfc8c5;font-size:10px;line-height:1.7;margin-top:6px;max-width:50ch}
+@media(max-width:900px){.jezero-origin{grid-template-columns:1fr 2fr}.jezero-origin>a{grid-column:2}.jezero-names>div{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.jezero-origin{display:block;padding-top:19px}.jezero-origin>div{margin-top:11px}.jezero-origin>a{margin-top:10px}.jezero-names>div{grid-template-columns:1fr}}

@@ -3,6 +3,7 @@ import { ArrowDown, ArrowRight, ArrowUpRight, CircleHelp, Compass, Expand, Globe
 import { MARS_LANDMARKS, SCIENCE_LAYERS } from './data/marsLandmarks'
 import { MARS_IMAGERY } from './data/marsImagery'
 import MARS_ROUTES from './data/marsRoutes.js'
+import { JEZERO_FORMATION, JEZERO_NAME_ORIGIN, JEZERO_NAMING_SOURCE } from './data/jezeroStory'
 import './components/cesiumMarsHero.css'
 
 const CesiumMarsHero = lazy(() => import('./components/CesiumMarsHero'))
@@ -202,6 +203,12 @@ function LandmarkPanel({ landmark, onClose, onOpenJezeroMap }) {
         </figure>
         <h3>{landmark.subtitle}</h3>
         <p>{landmark.description}</p>
+        {landmark.id === 'jezero' && <div className="jezero-origin-note">
+          <h3>How Jezero came to be</h3>
+          <p>{JEZERO_FORMATION}</p>
+          <p>{JEZERO_NAME_ORIGIN}</p>
+          <a href={JEZERO_NAMING_SOURCE} target="_blank" rel="noopener noreferrer">Jezero name origin · USGS <ArrowUpRight size={14} /></a>
+        </div>}
         {landmark.id === 'jezero' && <button className="jezero-map-cta" onClick={onOpenJezeroMap}>Open detailed 2D terrain map <ArrowRight size={17} /></button>}
         <a className="source-link" href={landmark.source} target="_blank" rel="noreferrer">Read about {landmark.name} at NASA <ArrowUpRight size={16} /></a>
       </div>
