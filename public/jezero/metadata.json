@@ -1,0 +1,26 @@
+{
+  "width": 4456,
+  "height": 5067,
+  "pixelMetres": 20,
+  "originProjectedMetres": [
+    4328999.999999998,
+    1143420.0000000028
+  ],
+  "marsRadiusMetres": 3396190.0,
+  "projection": "Mars equirectangular, sphere radius 3396190 m",
+  "northWest": [
+    76.997437,
+    19.290187
+  ],
+  "southEast": [
+    78.582563,
+    17.58052
+  ],
+  "elevationDisplayRangeMetres": [
+    -3094,
+    -1458
+  ],
+  "image": "/jezero/jezero-relief.png",
+  "source": "M20_JezeroCrater_CTXDEM_20m.tif",
+  "standardParallelDegrees": 18.4663
+}

@@ -1,0 +1,21 @@
+@font-face { font-family: Manrope; src: url('/fonts/manrope-regular.ttf') format('truetype'); font-weight: 400; font-display: swap; }
+@font-face { font-family: Manrope; src: url('/fonts/manrope-semibold.ttf') format('truetype'); font-weight: 600; font-display: swap; }
+@font-face { font-family: Manrope; src: url('/fonts/manrope-extrabold.ttf') format('truetype'); font-weight: 800; font-display: swap; }
+:root { font-family: Manrope, sans-serif; color: #eeeee7; background: #0a0e12; --accent: #f2a477; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; }
+button, input, select { font: inherit; }
+button { cursor: pointer; color: inherit; background: none; border: 0; }
+button:disabled { cursor: default; opacity: .4; }
+button:focus-visible, a:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+a { color: inherit; text-underline-offset: 4px; }
+h1, h2, h3, p { margin: 0; }
+.map-app { max-width: 2400px; margin: auto; }
+.map-app-nav { height: 82px; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 0 4.2%; border-bottom: 1px solid #ffffff24; background: #0a0e12; }
+.map-app-nav strong { font-size: 26px; letter-spacing: -.04em; }
+.map-app-nav strong span { color: var(--accent); }
+.map-app-nav > div { display: flex; align-items: center; gap: 8px; }
+.map-app-nav button { padding: 11px 14px; color: #b9c1c1; border: 1px solid #ffffff24; border-radius: 4px; font-size: 12px; }
+.map-app-nav button.active, .map-app-nav button:hover { color: #fff3e4; border-color: var(--accent); }
+.primary-button { display: inline-flex; align-items: center; justify-content: center; gap: 9px; padding: 13px 18px; color: #142025; background: var(--accent); border-radius: 4px; font-weight: 700; }
+@media (max-width: 600px) { .map-app-nav { height: 72px; padding: 0 14px; } .map-app-nav strong { font-size: 21px; } .map-app-nav > div { gap: 4px; } .map-app-nav button { padding: 9px 7px; font-size: 9px; } }

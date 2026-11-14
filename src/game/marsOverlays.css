@@ -1,0 +1,12 @@
+.mars-game-overlay{position:fixed;inset:0;margin:auto;width:430px;max-width:calc(100% - 32px);max-height:calc(100svh - 32px);overflow:auto;padding:36px 32px;background:#17272d;color:#f1e9d4;border:1px solid #ead9b82b;border-radius:8px;box-shadow:0 15px 50px #0006}
+.mars-game-overlay::backdrop{background:#111a20c9}
+.mars-game-overlay h2{font-size:26px;font-weight:600;letter-spacing:-.03em;line-height:1.25;margin-top:8px;text-wrap:balance}
+.mars-game-overlay p{font-size:12px;line-height:1.9;color:#d0d4bf;margin-top:18px}
+.mars-game-overlay small{display:block;font-size:10px;line-height:1.8;color:#afb9a8;margin-top:22px}
+.mars-game-overlay kbd{border:1px solid #a6b39a70;font:11px Manrope,sans-serif;padding:1px 5px;border-radius:2px}
+.mars-overlay-close{position:absolute;top:8px;right:8px}
+.mars-pause-dialog{text-align:center;padding:42px 30px}
+.mars-pause-dialog>svg{margin-bottom:14px;color:#f2b78c}
+.mars-pause-dialog h2{font-size:32px}
+.mars-pause-dialog .primary-button{margin-top:28px;font-size:12px}
+@media(max-width:480px){.mars-game-overlay{padding:32px 25px}.mars-game-overlay h2{font-size:24px}.mars-game-overlay p{font-size:11px}.mars-game-overlay small{font-size:9px}}
