@@ -1,11 +1,13 @@
 import { GAME_METERS_PER_UNIT, gameToLonLat, lonLatToGame, straightLineMetres, TRAVERSE_WAYPOINTS } from './marsGeo.js'
 import { getGeologyAt } from '../data/sim3464.js'
+import { PERSEVERANCE_SAMPLE_SITES, SAMPLE_CATALOG_URL, SAMPLE_REPORT_URL } from '../data/perseveranceSamples.js'
 
 export const MAP_SIZE = { width: 2400, height: 1800 }
 export const CAMP = { x: 2220, y: 1050 }
 export const START = { x: 2100, y: 1050 }
 export const SAVE_KEY = 'orbital-mars-expedition-v1'
 export const SCAN_RANGES = [0, 100, 155, 215]
+export const SAMPLE_SCAN_RANGE = 12 // 78 m in the illustrative game projection.
 
 const siteStories = [
   { id: 'basalt', name: 'Basalt outcrop', type: 'Rock formation', icon: 'rock', x: 1400, y: 930, color: '#e1ac7e', sample: 'Volcanic rock', fact: 'Some rocks studied by Perseverance in Jezero Crater formed from cooling molten rock. Studying their minerals helps scientists reconstruct the crater’s volcanic history.', source: 'https://www.jpl.nasa.gov/news/nasas-perseverance-makes-new-discoveries-in-mars-jezero-crater/' },
@@ -21,7 +23,7 @@ const stationNames = {
   delta: 'River delta history', dust: 'Martian regolith', volcanic: 'Igneous rocks',
 }
 
-export const SITES = siteStories.map(site => ({
+const educationalSites = siteStories.map(site => ({
   ...site,
   name: stationNames[site.id],
   type: 'Educational rover traverse waypoint',
@@ -31,6 +33,23 @@ export const SITES = siteStories.map(site => ({
   locationNote: 'Placed at a mapped Perseverance traverse waypoint. The science note describes Jezero generally; it does not identify this exact rock or sample.',
   coordinateSource: 'Cesium SampleData Mars.czml / PerseverancePath',
 }))
+
+export const SITES = [
+  ...educationalSites,
+  ...PERSEVERANCE_SAMPLE_SITES.map(site => ({
+    ...site,
+    ...lonLatToGame(site),
+    type: 'Perseverance sampling locality',
+    icon: 'rock', color: '#f3ca91', sample: site.samples.join(' + '),
+    isSampleSite: true,
+    source: SAMPLE_REPORT_URL,
+    catalogSource: SAMPLE_CATALOG_URL,
+    locationNote: 'NASA PDS reports this collection locality. The game terrain is illustrative; the drawn stone is not a verified image of the drilled rock. Sample tubes may have been moved after collection.',
+    coordinateSource: 'NASA PDS Mars 2020 Initial Reports, Volume 1',
+  })),
+]
+
+export const scanRangeFor = (site, scannerLevel) => site.isSampleSite ? SAMPLE_SCAN_RANGE : SCAN_RANGES[scannerLevel]
 
 // Illustrative EVA budget. Walking time uses straight-line distance because a
 // validated local DEM and traversability grid have not been loaded yet.
@@ -74,7 +93,8 @@ export function movePlayer(player, direction, seconds, wind = null, suitPower = 
   if (!length) return player
   const alignment = wind ? (direction.x * wind.x + direction.y * wind.y) / length : 0
   const factor = (wind ? Math.max(0.82, Math.min(1.12, 1 + alignment * wind.strength * 0.16)) : 1) * (suitPower < 5 ? 0.65 : 1)
-  const amount = 165 * factor * Math.max(0, Math.min(seconds, 0.05)) / length
+  const nearSample = SITES.some(site => site.isSampleSite && distance(player, site) < 48)
+  const amount = (nearSample ? 45 : 165) * factor * Math.max(0, Math.min(seconds, 0.05)) / length
   return {
     x: Math.max(45, Math.min(MAP_SIZE.width - 45, player.x + direction.x * amount)),
     y: Math.max(45, Math.min(MAP_SIZE.height - 45, player.y + direction.y * amount)),
@@ -97,7 +117,8 @@ export function spawnCreature(player, random = Math.random, id = `${Date.now()}-
 
 export function scanSite(progress, id) {
   const site = SITES.find(item => item.id === id)
-  if (!site || progress.discoveries.includes(id) || distance(progress.player, site) > SCAN_RANGES[progress.scannerLevel]) return progress
+  if (!site || progress.discoveries.includes(id) || distance(progress.player, site) > scanRangeFor(site, progress.scannerLevel)) return progress
+  if (site.isSampleSite) return { ...progress, discoveries: [...progress.discoveries, id], research: progress.research + 10 }
   const { longitude, latitude } = gameToLonLat(progress.player)
   const unit = getGeologyAt(longitude, latitude)
   return { ...progress, discoveries: [...progress.discoveries, id], research: progress.research + 10,

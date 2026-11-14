@@ -2,4 +2,8 @@ node_modules/
 dist/
 .vite/
 *.log
-.env*
+.impeccable/
+.env.local
+.gis-source/
+.gis-tools/
+sim3464_database.zip

@@ -139,7 +139,7 @@ export default function JezeroMap({ onBack }) {
 
   return <main id="explorer" className="jezero-map-page">
     <div className="jezero-map-heading">
-      <div><button className="jezero-map-back" onClick={onBack}><ArrowLeft size={17} /> Open game map</button><h1>Jezero region</h1><p>Follow the valleys, crater rim, and nearby named terrain. Drag to explore the wider map.</p></div>
+      <div><button className="jezero-map-back" onClick={onBack}><ArrowLeft size={17} /> Back to 3D Mars</button><h1>Jezero region</h1><p>Follow the valleys, crater rim, and nearby named terrain. Drag to explore the wider map.</p></div>
       <div className="jezero-map-source"><span>2D MARS MAP</span><strong>{resolution < 2 ? resolution.toFixed(1) : Math.round(resolution)} m / screen pixel</strong><small>{imagery === 'relief' ? '20 m CTX elevation source' : inHiriseBounds ? 'HiRISE mosaic available here' : 'Outside HiRISE coverage · CTX imagery'}</small></div>
     </div>
     <div className="jezero-map-toolbar">

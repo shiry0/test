@@ -45,4 +45,4 @@ createServer(async (request, response) => {
   })
   if (request.method === 'HEAD') response.end()
   else createReadStream(target).pipe(response)
-}).listen(port, () => console.log(`Mars maps are serving on http://localhost:${port}`))
+}).listen(port, () => console.log(`Orbital is serving on http://localhost:${port}`))

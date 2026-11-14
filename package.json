@@ -1,5 +1,5 @@
 {
-  "name": "orbital-mars-map-and-markers",
+  "name": "orbital-space-apps-demo",
   "private": true,
   "version": "1.0.0",
   "type": "module",
@@ -7,13 +7,18 @@
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0",
-    "start": "node server.js",
-    "test": "node --test scripts/mars.test.js"
+    "start": "node server.js"
   },
   "dependencies": {
+    "@react-three/drei": "^10.7.0",
+    "@react-three/fiber": "^9.4.0",
+    "cesium": "^1.147.0",
     "lucide-react": "^0.468.0",
+    "maplibre-gl": "^6.16.0",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "three": "^0.180.0",
+    "vite-plugin-static-copy": "^4.1.1"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^5.0.0",

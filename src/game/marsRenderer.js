@@ -1,4 +1,4 @@
-import { CAMP, MAP_SIZE, SCAN_RANGES, SITES, SPECIES } from './marsModel'
+import { CAMP, MAP_SIZE, SCAN_RANGES, SAMPLE_SCAN_RANGE, SITES, SPECIES } from './marsModel'
 import { PERSEVERANCE_PATH } from './marsTraverse.js'
 
 function randomSeed(seed = 2708) {
@@ -102,21 +102,41 @@ export function drawSprite(ctx, kind, x, y, scale = 3, moving = false, time = 0)
   }))
 }
 
-function pin(ctx, site, discovered, nearest, time) {
+// Compact symbols keep nearby, geographically accurate localities from
+// covering one another. The journal carries the full names and science text.
+function compactPin(ctx, site, discovered, selected) {
   const { x, y } = site
-  ctx.strokeStyle = discovered ? '#cce3bd' : '#efdbb8'; ctx.lineWidth = 1.5
-  ctx.fillStyle = '#372e27'; ctx.beginPath(); ctx.arc(x, y, 17, 0, Math.PI * 2); ctx.fill(); ctx.stroke()
-  ctx.strokeStyle = site.color; ctx.lineWidth = 2
-  ctx.beginPath()
-  if (site.icon === 'mountain') { ctx.moveTo(x - 8, y + 5); ctx.lineTo(x, y - 7); ctx.lineTo(x + 8, y + 5); ctx.closePath() }
-  else if (site.icon === 'lake') { for (let i = -1; i <= 1; i++) { ctx.moveTo(x - 7, y + i * 5); ctx.quadraticCurveTo(x - 3, y + i * 5 - 4, x + 1, y + i * 5); ctx.quadraticCurveTo(x + 5, y + i * 5 + 4, x + 8, y + i * 5) } }
-  else { ctx.moveTo(x - 7, y + 5); ctx.lineTo(x - 5, y - 4); ctx.lineTo(x + 2, y - 7); ctx.lineTo(x + 8, y + 3); ctx.closePath() }
-  ctx.stroke()
-  if (nearest) { ctx.strokeStyle = '#fff1d980'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(x, y, 23, 0, Math.PI * 2); ctx.stroke() }
-  const label = `${discovered ? '✓ ' : ''}${site.name}`
-  ctx.font = '600 11px Manrope, sans-serif'; const width = ctx.measureText(label).width
-  ctx.fillStyle = '#302b27d9'; ctx.fillRect(x - width / 2 - 10, y + 25, width + 20, 24)
-  ctx.textAlign = 'center'; ctx.fillStyle = discovered ? '#d4e6bf' : '#f1e5cd'; ctx.fillText(label, x, y + 41); ctx.textAlign = 'left'
+  if (site.isSampleSite) {
+    // Illustrative rock at the PDS collection coordinate.
+    ctx.fillStyle = '#332b28'; ctx.beginPath(); ctx.ellipse(x, y + 5, 9, 3, 0, 0, Math.PI * 2); ctx.fill()
+    ctx.fillStyle = '#9b806b'; ctx.strokeStyle = '#e0b98d'; ctx.lineWidth = 1
+    ctx.beginPath(); ctx.moveTo(x - 8, y + 5); ctx.lineTo(x - 5, y - 2); ctx.lineTo(x + 1, y - 4); ctx.lineTo(x + 7, y); ctx.lineTo(x + 9, y + 5); ctx.closePath(); ctx.fill(); ctx.stroke()
+    ctx.fillStyle = '#c09a77'; ctx.beginPath(); ctx.moveTo(x - 5, y - 2); ctx.lineTo(x + 1, y - 4); ctx.lineTo(x + 2, y + 1); ctx.lineTo(x - 3, y + 2); ctx.closePath(); ctx.fill()
+    ctx.fillStyle = discovered ? '#cce8b5' : '#f3ca91'; ctx.strokeStyle = '#302b27'; ctx.lineWidth = 1
+    ctx.beginPath(); ctx.moveTo(x, y - 13); ctx.lineTo(x + 4, y - 9); ctx.lineTo(x, y - 5); ctx.lineTo(x - 4, y - 9); ctx.closePath(); ctx.fill(); ctx.stroke()
+  } else {
+    ctx.fillStyle = '#372e27'; ctx.strokeStyle = discovered ? '#cce3bd' : site.color; ctx.lineWidth = 1.4
+    ctx.beginPath(); ctx.arc(x, y, selected ? 8 : 5, 0, Math.PI * 2); ctx.fill(); ctx.stroke()
+  }
+  if (selected) {
+    ctx.strokeStyle = '#fff1d9b0'; ctx.lineWidth = 1
+    ctx.beginPath(); ctx.arc(x, y - (site.isSampleSite ? 3 : 0), site.isSampleSite ? 14 : 12, 0, Math.PI * 2); ctx.stroke()
+  }
+}
+
+function selectedSiteLabel(ctx, site) {
+  ctx.font = '600 10px Manrope, sans-serif'
+  const label = site.isSampleSite ? `${site.name} · sample site` : site.name
+  const width = ctx.measureText(label).width
+  const nearCamp = Math.hypot(site.x - CAMP.x, site.y - CAMP.y) < 40
+  const left = nearCamp ? site.x + 19 : site.x - width / 2 - 9
+  const top = nearCamp ? site.y - 41 : site.y - 43
+  if (nearCamp) {
+    ctx.strokeStyle = '#fff1d988'; ctx.lineWidth = 1
+    ctx.beginPath(); ctx.moveTo(site.x + 6, site.y - 10); ctx.lineTo(left, top + 20); ctx.stroke()
+  }
+  ctx.fillStyle = '#302b27e8'; ctx.fillRect(left, top, width + 18, 20)
+  ctx.textAlign = 'left'; ctx.fillStyle = '#fff1d9'; ctx.fillText(label, left + 9, top + 14)
 }
 
 function questDiamond(ctx, x, y, radius, time, reducedMotion) {
@@ -173,33 +193,49 @@ export function renderMap(ctx, terrain, state, creatures, camera, size, target, 
     ctx.strokeStyle = '#f1dfb6a8'; ctx.lineWidth = 2; ctx.setLineDash([4, 9]); ctx.beginPath(); ctx.moveTo(state.player.x, state.player.y); ctx.lineTo(target.x, target.y); ctx.stroke(); ctx.setLineDash([])
     ctx.strokeStyle = '#f1dfb6'; ctx.beginPath(); ctx.arc(target.x, target.y, 8, 0, Math.PI * 2); ctx.stroke()
   }
-  // Scanner range is measured in synthetic game-map units.
-  ctx.fillStyle = '#fae1a00b'; ctx.strokeStyle = '#ffe2a13b'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(state.player.x, state.player.y, SCAN_RANGES[state.scannerLevel], 0, Math.PI * 2); ctx.fill(); ctx.stroke()
-  for (const site of SITES) pin(ctx, site, state.discoveries.includes(site.id), Math.hypot(site.x - state.player.x, site.y - state.player.y) <= SCAN_RANGES[state.scannerLevel], time)
-  ctx.fillStyle = '#363932'; ctx.fillRect(CAMP.x - 27, CAMP.y - 14, 54, 28)
-  ctx.fillStyle = state.beacon ? '#bbdcb3' : '#b2b5a3'; ctx.fillRect(CAMP.x - 22, CAMP.y - 26, 44, 22)
-  ctx.strokeStyle = '#e9dec0'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(CAMP.x, CAMP.y - 26); ctx.lineTo(CAMP.x, CAMP.y - 65); ctx.stroke()
-  ctx.fillStyle = state.beacon ? '#bce7b8' : '#e9b27e'; ctx.beginPath(); ctx.arc(CAMP.x, CAMP.y - 68, 5, 0, Math.PI * 2); ctx.fill()
-  if (state.beacon) { ctx.strokeStyle = '#d6eebd88'; ctx.lineWidth = 1; for (const r of [15, 25, 35]) { ctx.beginPath(); ctx.arc(CAMP.x, CAMP.y - 68, r, -0.9, 0.9); ctx.stroke() } }
-  ctx.font = '600 10px Manrope, sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#f3e4c8'
-  if (showLandingMarker) ctx.fillText(state.beacon ? 'SURVEY BEACON · ONLINE' : 'LANDING CAMP', CAMP.x, CAMP.y + 34)
-  if (showLandingMarker) {
-    ctx.strokeStyle = '#fff4df'; ctx.lineWidth = 3
-    ctx.fillStyle = '#e99a69'; ctx.beginPath(); ctx.arc(CAMP.x, CAMP.y - 53, 10, 0, Math.PI * 2); ctx.fill(); ctx.stroke()
-    ctx.fillStyle = '#26332ee8'; ctx.fillRect(CAMP.x - 67, CAMP.y - 94, 134, 22)
-    ctx.fillStyle = '#fff3dd'; ctx.font = '700 10px Manrope, sans-serif'
-    ctx.fillText('LANDING SITE', CAMP.x, CAMP.y - 79)
+  const selectedSample = SITES.find(site => site.id === state.destinationId && site.isSampleSite)
+  if (!routeOverview) {
+    const activeRange = selectedSample ? SAMPLE_SCAN_RANGE : SCAN_RANGES[state.scannerLevel]
+    ctx.fillStyle = '#fae1a008'; ctx.strokeStyle = '#ffe2a13b'; ctx.lineWidth = 1
+    ctx.beginPath(); ctx.arc(state.player.x, state.player.y, activeRange, 0, Math.PI * 2); ctx.fill(); ctx.stroke()
   }
+  if (!routeOverview && selectedSample && Math.hypot(selectedSample.x - state.player.x, selectedSample.y - state.player.y) < 80) {
+    ctx.strokeStyle = '#f3ca9180'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(selectedSample.x, selectedSample.y, SAMPLE_SCAN_RANGE, 0, Math.PI * 2); ctx.stroke()
+  }
+  for (const site of SITES) {
+    if (routeOverview) {
+      ctx.fillStyle = site.isSampleSite ? '#f3ca91' : '#d0d0be'
+      ctx.beginPath(); ctx.arc(site.x, site.y, site.isSampleSite ? 4 : 2.5, 0, Math.PI * 2); ctx.fill()
+    } else compactPin(ctx, site, state.discoveries.includes(site.id), site.id === state.destinationId)
+  }
+  // Keep the camp footprint small enough to reveal nearby Sid samples.
+  ctx.fillStyle = '#363932'; ctx.fillRect(CAMP.x - 6, CAMP.y - 4, 12, 8)
+  ctx.fillStyle = state.beacon ? '#bbdcb3' : '#b2b5a3'; ctx.fillRect(CAMP.x - 5, CAMP.y - 11, 10, 7)
+  ctx.strokeStyle = '#e9dec0'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(CAMP.x, CAMP.y - 11); ctx.lineTo(CAMP.x, CAMP.y - 22); ctx.stroke()
+  ctx.fillStyle = state.beacon ? '#bce7b8' : '#e9b27e'; ctx.beginPath(); ctx.arc(CAMP.x, CAMP.y - 23, 3, 0, Math.PI * 2); ctx.fill()
+  if (state.beacon) { ctx.strokeStyle = '#d6eebd88'; ctx.lineWidth = 1; for (const r of [7, 11]) { ctx.beginPath(); ctx.arc(CAMP.x, CAMP.y - 23, r, -0.9, 0.9); ctx.stroke() } }
+  if (showLandingMarker) {
+    ctx.strokeStyle = '#fff4df'; ctx.lineWidth = 1.5
+    ctx.fillStyle = '#e99a69'; ctx.beginPath(); ctx.arc(CAMP.x, CAMP.y - 23, 5, 0, Math.PI * 2); ctx.fill(); ctx.stroke()
+  }
+  const selectedSite = SITES.find(site => site.id === state.destinationId)
+  if (selectedSite && !routeOverview) selectedSiteLabel(ctx, selectedSite)
   ctx.textAlign = 'left'
-  for (const creature of creatures) {
+  for (const creature of routeOverview ? [] : creatures) {
     const species = SPECIES.find(s => s.id === creature.species)
     const bob = reducedMotion ? 0 : Math.sin(time * 2 + creature.x) * 2
-    drawSprite(ctx, creature.species, creature.x, creature.y + bob, 3)
-    ctx.fillStyle = '#352d27d9'; ctx.fillRect(creature.x - 33, creature.y + 12, 66, 18)
-    ctx.fillStyle = species.color; ctx.font = '600 9px Manrope, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(species.name, creature.x, creature.y + 25); ctx.textAlign = 'left'
+    drawSprite(ctx, creature.species, creature.x, creature.y + bob, 2)
+    if (Math.hypot(creature.x - state.player.x, creature.y - state.player.y) < 35) {
+      ctx.fillStyle = '#352d27d9'; ctx.fillRect(creature.x - 28, creature.y + 10, 56, 15)
+      ctx.fillStyle = species.color; ctx.font = '600 8px Manrope, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(species.name, creature.x, creature.y + 21); ctx.textAlign = 'left'
+    }
   }
-  drawSprite(ctx, 'astronaut', state.player.x, state.player.y, 3, moving && !reducedMotion, time)
+  if (routeOverview) {
+    ctx.fillStyle = '#fff7e5'; ctx.strokeStyle = '#26332e'; ctx.lineWidth = 2
+    ctx.beginPath(); ctx.arc(state.player.x, state.player.y, 5, 0, Math.PI * 2); ctx.fill(); ctx.stroke()
+  } else drawSprite(ctx, 'astronaut', state.player.x, state.player.y, 2, moving && !reducedMotion, time)
   ctx.restore()
+  if (routeOverview) return
   const rover = PERSEVERANCE_PATH.at(-1)
   const roverX = width / 2 + (rover.x - camera.x) * scale
   const roverY = height / 2 + (rover.y - camera.y) * scale
@@ -210,10 +246,6 @@ export function renderMap(ctx, terrain, state, creatures, camera, size, target, 
   const markerX = visible ? roverX : Math.max(35, Math.min(width - 35, playerX + Math.cos(direction) * 82))
   const markerY = visible ? roverY : Math.max(140, Math.min(height - 125, playerY + Math.sin(direction) * 82))
   questDiamond(ctx, markerX, markerY, 12, time, reducedMotion)
-  ctx.fillStyle = '#16241fe8'; ctx.fillRect(markerX - 57, markerY + 18, 114, 20)
-  ctx.fillStyle = '#fff2d9'; ctx.font = '700 10px Manrope, sans-serif'; ctx.textAlign = 'center'
-  ctx.fillText(visible ? 'PERSEVERANCE' : 'ROVER WAYPOINT', markerX, markerY + 32)
-  ctx.textAlign = 'left'
   if (!visible) {
     ctx.save(); ctx.translate(markerX + Math.cos(direction) * 28, markerY + Math.sin(direction) * 28); ctx.rotate(direction)
     ctx.fillStyle = '#fff2d9'; ctx.beginPath(); ctx.moveTo(7, 0); ctx.lineTo(-4, -5); ctx.lineTo(-4, 5); ctx.closePath(); ctx.fill(); ctx.restore()
@@ -230,7 +262,7 @@ export function renderMinimap(canvas, terrain, state, creatures, showLandingMark
   ctx.fillStyle = '#74513e'; ctx.fillRect(0, 0, canvas.width, canvas.height)
   ctx.save(); ctx.translate(center, center); ctx.scale(scale, scale); ctx.translate(-state.player.x, -state.player.y); ctx.drawImage(terrain, 0, 0); ctx.restore()
   ctx.fillStyle = '#152a2422'; ctx.fillRect(0, 0, canvas.width, canvas.height)
-  SITES.forEach(site => { const point = at(site); ctx.fillStyle = state.discoveries.includes(site.id) ? '#cce8b5' : '#f4c99d'; ctx.beginPath(); ctx.arc(point.x, point.y, 3, 0, Math.PI * 2); ctx.fill() })
+  SITES.forEach(site => { const point = at(site); ctx.fillStyle = state.discoveries.includes(site.id) ? '#cce8b5' : site.isSampleSite ? '#ffe0a5' : '#f4c99d'; ctx.beginPath(); if (site.isSampleSite) { ctx.moveTo(point.x, point.y - 5); ctx.lineTo(point.x + 4, point.y); ctx.lineTo(point.x, point.y + 5); ctx.lineTo(point.x - 4, point.y); ctx.closePath() } else ctx.arc(point.x, point.y, 3, 0, Math.PI * 2); ctx.fill() })
   creatures.forEach(creature => { const point = at(creature); ctx.fillStyle = '#f1b2ad'; ctx.fillRect(point.x - 2, point.y - 2, 4, 4) })
   if (showLandingMarker) {
     const landing = at(CAMP)

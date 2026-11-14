@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, ArrowUpRight, BookOpen, Check, ChevronRight, Compass, Gem, HelpCircle, Home, MapPin, Mountain, Orbit, Pause, Play, Radio, RotateCcw, ScanLine, Shield, Sparkles, Waves, X, Zap } from 'lucide-react'
-import { battleTurn, CAMP, distance, MAP_SIZE, movePlayer, newProgress, planMarswalk, restoreProgress, SAVE_KEY, SCAN_RANGES, scanSite, SITES, spawnCreature, SPECIES, startBattle, suitPowerAfter } from './marsModel'
+import { battleTurn, CAMP, distance, MAP_SIZE, movePlayer, newProgress, planMarswalk, restoreProgress, SAVE_KEY, SCAN_RANGES, scanRangeFor, scanSite, SITES, spawnCreature, SPECIES, startBattle, suitPowerAfter } from './marsModel'
 import { createTerrain, drawSprite, renderMap, renderMinimap } from './marsRenderer'
 import { SIM3464_SOURCE } from '../data/sim3464'
 import { windAt } from './marsWeather'
@@ -27,10 +27,17 @@ function loadProgress() {
 function interactionFor(progress, creatures) {
   if (!progress.beacon && progress.discoveries.length >= 3 && progress.defeated >= 1 && distance(progress.player, CAMP) < 95) return { type: 'camp', item: CAMP, distance: distance(progress.player, CAMP) }
   const options = [
-    ...SITES.filter(site => !progress.discoveries.includes(site.id)).map(item => ({ type: 'site', item, distance: distance(progress.player, item), range: SCAN_RANGES[progress.scannerLevel] })),
+    ...SITES.map(item => ({ type: 'site', item, distance: distance(progress.player, item), range: scanRangeFor(item, progress.scannerLevel) })),
     ...creatures.map(item => ({ type: 'creature', item, distance: distance(progress.player, item), range: 95 })),
   ]
-  return options.filter(item => item.distance <= item.range).sort((a, b) => a.distance - b.distance)[0] || null
+  const priority = option => {
+    if (option.type === 'creature') return 2
+    const recorded = progress.discoveries.includes(option.item.id)
+    if (recorded) return option.item.isSampleSite ? 4 : 5
+    if (option.item.isSampleSite) return option.item.id === progress.destinationId ? -1 : 0
+    return 3
+  }
+  return options.filter(item => item.distance <= item.range).sort((a, b) => priority(a) - priority(b) || a.distance - b.distance)[0] || null
 }
 
 function Sprite({ species, className = '' }) {
@@ -85,19 +92,20 @@ export default function MarsGame({ onExit, reducedMotion, pausedExternally = fal
   const game = useRef(loaded.progress)
   const [storageAvailable, setStorageAvailable] = useState(loaded.available)
   const [paused, setPaused] = useState(false)
-  const [journalOpen, setJournalOpen] = useState(() => window.innerWidth > 950)
+  const [journalOpen, setJournalOpen] = useState(false)
   const [routeOverview, setRouteOverview] = useState(false)
   const routeOverviewRef = useRef(false)
   const [showLandingMarker, setShowLandingMarker] = useState(true)
   const showLandingMarkerRef = useRef(true)
   const [journalTab, setJournalTab] = useState('sites')
-  const [selectedSite, setSelectedSite] = useState(loaded.progress.destinationId || 'basalt')
+  const [selectedSite, setSelectedSite] = useState(loaded.progress.destinationId || 'sample-sid')
   const [showHelp, setShowHelp] = useState(false)
   const [battle, setBattle] = useState(null)
   const battleRef = useRef(null)
   const [toast, setToast] = useState('Touchdown. Click the map to walk, or use WASD / arrow keys.')
   const canvas = useRef()
   const minimap = useRef()
+  const journal = useRef()
   const host = useRef()
   const keys = useRef(new Set())
   const walkTarget = useRef(null)
@@ -183,7 +191,7 @@ export default function MarsGame({ onExit, reducedMotion, pausedExternally = fal
       const { width, height } = size.current
       const scale = routeOverviewRef.current
         ? Math.min(1, width / (PERSEVERANCE_BOUNDS.maxX - PERSEVERANCE_BOUNDS.minX + 500), height / (PERSEVERANCE_BOUNDS.maxY - PERSEVERANCE_BOUNDS.minY + 420))
-        : width < 650 ? 1.2 : 1.45
+        : width < 650 ? 1.8 : 2.3
       size.current.scale = scale
       const desiredX = routeOverviewRef.current ? (PERSEVERANCE_BOUNDS.minX + PERSEVERANCE_BOUNDS.maxX) / 2 : Math.max(width / scale / 2, Math.min(MAP_SIZE.width - width / scale / 2, game.current.player.x))
       const desiredY = routeOverviewRef.current ? (PERSEVERANCE_BOUNDS.minY + PERSEVERANCE_BOUNDS.maxY) / 2 : Math.max(height / scale / 2, Math.min(MAP_SIZE.height - height / scale / 2, game.current.player.y))
@@ -202,11 +210,13 @@ export default function MarsGame({ onExit, reducedMotion, pausedExternally = fal
 
   const setRoute = item => {
     if (blocked.current) return
+    if (routeOverviewRef.current) { routeOverviewRef.current = false; setRouteOverview(false) }
     if (item.id) {
       setSelectedSite(item.id)
       commit({ ...game.current, destinationId: item.id })
     }
     walkTarget.current = { x: item.x, y: item.y }
+    requestAnimationFrame(() => journal.current?.scrollTo(0, 0))
     if (window.innerWidth <= 760) setJournalOpen(false)
     canvas.current?.focus({ preventScroll: true })
   }
@@ -215,7 +225,9 @@ export default function MarsGame({ onExit, reducedMotion, pausedExternally = fal
     const current = game.current
     const next = scanSite(current, id)
     setSelectedSite(id); setJournalTab('sites'); setJournalOpen(true)
-    if (next !== current) { commit(next); setToast(`${SITES.find(s => s.id === id).name} recorded. +10 research. New field note unlocked.`) }
+    requestAnimationFrame(() => journal.current?.scrollTo(0, 0))
+    if (next !== current) { commit({ ...next, destinationId: id }); setToast(`${SITES.find(s => s.id === id).name} recorded. +10 research. ${SITES.find(s => s.id === id).isSampleSite ? 'NASA sample record unlocked.' : 'New field note unlocked.'}`) }
+    else if (current.destinationId !== id) commit({ ...current, destinationId: id })
   }
   const beginBattle = creature => {
     if (blocked.current) return
@@ -270,7 +282,10 @@ export default function MarsGame({ onExit, reducedMotion, pausedExternally = fal
   const pointerWalk = event => {
     if (blocked.current || event.button !== 0) return
     const rect = event.currentTarget.getBoundingClientRect(), view = size.current
-    setRoute({ x: Math.max(45, Math.min(MAP_SIZE.width - 45, (event.clientX - rect.left - view.width / 2) / view.scale + camera.current.x)), y: Math.max(45, Math.min(MAP_SIZE.height - 45, (event.clientY - rect.top - view.height / 2) / view.scale + camera.current.y)) })
+    const point = { x: Math.max(45, Math.min(MAP_SIZE.width - 45, (event.clientX - rect.left - view.width / 2) / view.scale + camera.current.x)), y: Math.max(45, Math.min(MAP_SIZE.height - 45, (event.clientY - rect.top - view.height / 2) / view.scale + camera.current.y)) }
+    const rock = SITES.find(site => site.isSampleSite && distance(site, point) < 10)
+    if (rock && distance(game.current.player, rock) <= scanRangeFor(rock, game.current.scannerLevel)) inspectSite(rock.id)
+    else setRoute(rock || point)
   }
   const pressDirection = (event, key) => {
     if (blocked.current) return
@@ -287,16 +302,30 @@ export default function MarsGame({ onExit, reducedMotion, pausedExternally = fal
     <canvas ref={canvas} className="mars-map" tabIndex={0} role="application" aria-label="Mars game map. Use W A S D or arrow keys to walk, or click to walk to a point. Press E near a site or creature to interact. Journal buttons also navigate to sites." aria-keyshortcuts="W A S D ArrowUp ArrowLeft ArrowDown ArrowRight E" onPointerDown={pointerWalk}>Use the field journal to select a destination, then scan nearby sites. This game needs a browser with Canvas 2D support.</canvas>
     <div className="mars-map-shade" aria-hidden="true" />
 
-    <header className="mars-game-header"><div><h1>Mars, on foot<span>.</span></h1><p>Mapped Jezero traverse <span>·</span> Stylized expedition</p></div><div className="mars-game-header-actions"><button onClick={() => setPaused(value => !value)} aria-label={paused ? 'Resume expedition' : 'Pause expedition'} title={paused ? 'Resume' : 'Pause'}>{paused ? <Play size={17} /> : <Pause size={17} />}</button><button onClick={() => setShowHelp(value => !value)} aria-label="How to play"><HelpCircle size={18} /></button><button className="mars-return" onClick={onExit}><Orbit size={16} /><span>Regional map</span></button></div></header>
+    <header className="mars-game-header"><div><h1>Mars, on foot<span>.</span></h1><p>Mapped Jezero traverse <span>·</span> Stylized expedition</p></div><div className="mars-game-header-actions"><button onClick={() => setPaused(value => !value)} aria-label={paused ? 'Resume expedition' : 'Pause expedition'} title={paused ? 'Resume' : 'Pause'}>{paused ? <Play size={17} /> : <Pause size={17} />}</button><button onClick={() => setShowHelp(value => !value)} aria-label="How to play"><HelpCircle size={18} /></button><button className="mars-return" onClick={onExit}><Orbit size={16} /><span>Return to orbit</span></button></div></header>
 
     <div className="mars-status-bar"><span><Gem size={15} /><strong>{snapshot.research}</strong> research</span><span><BookOpen size={14} /><strong>{snapshot.discoveries.length}/{SITES.length}</strong> discoveries</span><span><ScanLine size={14} />Scanner <strong>Lv. {snapshot.scannerLevel}</strong></span><span>Suit <strong>{Math.round(snapshot.suitPower)}%</strong></span><span className="mars-wind-status">Wind <strong>{wind.current.strength > .7 ? 'gusting' : 'steady'}</strong> ↖</span><span className="mars-save-state">{storageAvailable ? 'Saved on this device' : 'Session progress only'}</span></div>
 
-    <aside className="mars-objective" aria-label="Expedition objectives"><div className="mars-objective-heading"><Radio size={17} /><h2>{snapshot.beacon ? 'Beacon online.' : 'Bring the sector online.'}</h2></div><p>{snapshot.beacon ? 'First expedition complete. There’s still a whole landscape to discover.' : 'Study the landscape, collect research, then activate your survey beacon at camp.'}</p><ul><li className={snapshot.discoveries.length >= 3 ? 'done' : ''}><Check size={13} />Scan 3 landmarks <span>{Math.min(3, snapshot.discoveries.length)}/3</span></li><li className={snapshot.defeated >= 1 ? 'done' : ''}><Check size={13} />Defeat a creature <span>{Math.min(1, snapshot.defeated)}/1</span></li><li className={snapshot.beacon ? 'done' : ''}><Check size={13} />Activate the beacon <span>{snapshot.beacon ? '1/1' : '0/1'}</span></li></ul><button onClick={() => setRoute(CAMP)}><Home size={13} />{beaconReady && !snapshot.beacon ? 'Walk to beacon' : 'Walk to camp'}<ChevronRight size={13} /></button></aside>
+    <aside className={`mars-objective ${snapshot.beacon ? 'is-complete' : ''}`} aria-label="Expedition objectives"><div className="mars-objective-heading"><Radio size={17} /><h2>{snapshot.beacon ? 'Beacon online.' : 'Bring the sector online.'}</h2></div><p>{snapshot.beacon ? 'First expedition complete. There’s still a whole landscape to discover.' : 'Study the landscape, collect research, then activate your survey beacon at camp.'}</p><ul><li className={snapshot.discoveries.length >= 3 ? 'done' : ''}><Check size={13} />Scan 3 landmarks <span>{Math.min(3, snapshot.discoveries.length)}/3</span></li><li className={snapshot.defeated >= 1 ? 'done' : ''}><Check size={13} />Defeat a creature <span>{Math.min(1, snapshot.defeated)}/1</span></li><li className={snapshot.beacon ? 'done' : ''}><Check size={13} />Activate the beacon <span>{snapshot.beacon ? '1/1' : '0/1'}</span></li></ul><button onClick={() => setRoute(CAMP)}><Home size={13} />{beaconReady && !snapshot.beacon ? 'Walk to beacon' : 'Walk to camp'}<ChevronRight size={13} /></button></aside>
 
     <button className={`mars-journal-toggle ${journalOpen ? 'active' : ''}`} onClick={() => setJournalOpen(value => !value)} aria-expanded={journalOpen} aria-controls="mars-field-journal"><BookOpen size={17} /><span>Field journal</span>{journalOpen ? <X size={14} /> : <ChevronRight size={14} />}</button>
-    {journalOpen && <aside className="mars-journal" id="mars-field-journal" aria-label="Field journal"><div className="mars-journal-tabs" role="group" aria-label="Journal category"><button className={journalTab === 'sites' ? 'active' : ''} onClick={() => setJournalTab('sites')}>Landmarks <span>{snapshot.discoveries.length}/6</span></button><button className={journalTab === 'creatures' ? 'active' : ''} onClick={() => setJournalTab('creatures')}>Creatures <span>{snapshot.encountered.length}/3</span></button></div>
-      {journalTab === 'sites' ? <><div className="mars-site-list">{SITES.map(site => { const Icon = siteIcons[site.icon], discovered = snapshot.discoveries.includes(site.id); return <button key={site.id} className={selectedSite === site.id ? 'selected' : ''} onClick={() => { setSelectedSite(site.id); if (!discovered) setRoute(site) }} aria-label={`${site.name}, ${discovered ? 'recorded, read field note' : `walk here, ${Math.round(distance(snapshot.player, site) * GAME_METERS_PER_UNIT)} meters away`}`}><Icon size={17} /><span>{site.name}<small>{site.type}</small></span>{discovered ? <Check size={14} className="mars-recorded" /> : <small>{Math.round(distance(snapshot.player, site) * GAME_METERS_PER_UNIT)} m</small>}</button> })}</div>
-        <section className="mars-site-detail" aria-label="Selected landmark"><h3>{selected.name}</h3>{foundSelected ? <><span className="mars-sample"><Check size={12} />{selected.sample} recorded</span>{snapshot.scannedUnits?.[selected.id] && <div className="mars-geology-result"><strong>USGS SIM 3464 · {snapshot.scannedUnits[selected.id].symbol}</strong><span>{snapshot.scannedUnits[selected.id].name}</span><p>{snapshot.scannedUnits[selected.id].description}</p><small>Unit at your scan position. Regional map scale 1:75,000; alignment may differ by 100–200 m from rover operations imagery. Mineralogy, age and core sample are not established by this polygon alone.</small><a href={SIM3464_SOURCE} target="_blank" rel="noreferrer">Read the geologic map <ArrowUpRight size={13} /></a></div>}<p>{selected.fact}</p><p className="mars-location-note">{selected.locationNote}</p><a href={selected.source} target="_blank" rel="noreferrer">Read the NASA science <ArrowUpRight size={13} /></a></> : <><p>Walk within scanner range to uncover this waypoint’s science story and earn 10 research.</p><button className="mars-detail-action" disabled={distance(snapshot.player, selected) > SCAN_RANGES[snapshot.scannerLevel]} onClick={() => inspectSite(selected.id)}><ScanLine size={14} />{distance(snapshot.player, selected) <= SCAN_RANGES[snapshot.scannerLevel] ? 'Scan waypoint +10' : `Get within ${SCAN_RANGES[snapshot.scannerLevel] * GAME_METERS_PER_UNIT} m`}</button></>}</section></> : <div className="mars-creature-journal"><p>Original game creatures. No living creatures like these have been confirmed on Mars.</p>{SPECIES.map(species => <div key={species.id}><Sprite species={species.id} /><div><h3>{species.name}</h3><span>{species.kind}</span><p>{snapshot.encountered.includes(species.id) ? species.description : 'Encounter this creature to add its field note.'}</p></div></div>)}<div className="mars-nearby"><strong>Nearby creatures</strong>{creatures.current.map(creature => <button key={creature.id} onClick={() => setRoute(creature)}>{SPECIES.find(s => s.id === creature.species).name}<span>{Math.round(distance(snapshot.player, creature) * GAME_METERS_PER_UNIT)} m <ChevronRight size={12} /></span></button>)}</div></div>}
+    {journalOpen && <aside ref={journal} className="mars-journal" id="mars-field-journal" aria-label="Field journal"><div className="mars-journal-tabs" role="group" aria-label="Journal category"><button className={journalTab === 'sites' ? 'active' : ''} onClick={() => setJournalTab('sites')}>Sites <span>{snapshot.discoveries.length}/{SITES.length}</span></button><button className={journalTab === 'creatures' ? 'active' : ''} onClick={() => setJournalTab('creatures')}>Creatures <span>{snapshot.encountered.length}/3</span></button></div>
+      {journalTab === 'sites' ? <>
+        <section className="mars-site-detail" aria-label="Selected landmark">
+          <h3>{selected.name}{selected.isSampleSite ? ' sampling area' : ''}</h3>
+          {foundSelected ? <>
+            <span className="mars-sample"><Check size={12} />{selected.isSampleSite ? 'NASA sample record viewed' : `${selected.sample} recorded`}</span>
+            {selected.isSampleSite && <div className="mars-sample-record"><strong>Samples collected here</strong><ul>{selected.samples.map(sample => <li key={sample}>{sample}</li>)}</ul><small>Reported collection location: {selected.latitude.toFixed(6)}° N, {selected.longitude.toFixed(6)}° E. This scan reads NASA’s published record; it does not collect or move a tube.</small></div>}
+            {!selected.isSampleSite && snapshot.scannedUnits?.[selected.id] && <div className="mars-geology-result"><strong>USGS SIM 3464 · {snapshot.scannedUnits[selected.id].symbol}</strong><span>{snapshot.scannedUnits[selected.id].name}</span><p>{snapshot.scannedUnits[selected.id].description}</p><small>Unit at your scan position. Regional map scale 1:75,000; alignment may differ by 100–200 m from rover operations imagery. Mineralogy, age and core sample are not established by this polygon alone.</small><a href={SIM3464_SOURCE} target="_blank" rel="noreferrer">Read the geologic map <ArrowUpRight size={13} /></a></div>}
+            <p>{selected.fact}</p><p className="mars-location-note">{selected.locationNote}</p>
+            <a href={selected.source} target="_blank" rel="noreferrer">{selected.isSampleSite ? 'Read the NASA PDS sample report' : 'Read the NASA science'} <ArrowUpRight size={13} /></a>
+            {selected.catalogSource && <a href={selected.catalogSource} target="_blank" rel="noreferrer">Browse NASA’s sample catalog <ArrowUpRight size={13} /></a>}
+          </> : <>
+            <p>{selected.isSampleSite ? `Walk within ${Math.round(scanRangeFor(selected, snapshot.scannerLevel) * GAME_METERS_PER_UNIT)} m to scan this reported sampling area and view its NASA record.` : 'Walk within scanner range to uncover this waypoint’s science story and earn 10 research.'}</p>
+            <button className="mars-detail-action" disabled={distance(snapshot.player, selected) > scanRangeFor(selected, snapshot.scannerLevel)} onClick={() => inspectSite(selected.id)}><ScanLine size={14} />{distance(snapshot.player, selected) <= scanRangeFor(selected, snapshot.scannerLevel) ? selected.isSampleSite ? 'Scan sample site +10' : 'Scan waypoint +10' : `Get within ${Math.round(scanRangeFor(selected, snapshot.scannerLevel) * GAME_METERS_PER_UNIT)} m`}</button>
+          </>}
+        </section>
+        <div className="mars-site-list">{SITES.slice().sort((a, b) => Number(b.isSampleSite) - Number(a.isSampleSite)).map(site => { const Icon = siteIcons[site.icon], discovered = snapshot.discoveries.includes(site.id); return <button key={site.id} className={selectedSite === site.id ? 'selected' : ''} onClick={() => setRoute(site)} aria-label={`${site.name}, ${discovered ? 'recorded, select destination and read field note' : `walk here, ${Math.round(distance(snapshot.player, site) * GAME_METERS_PER_UNIT)} meters away`}`}><Icon size={17} /><span>{site.name}<small>{site.type}</small></span>{discovered ? <Check size={14} className="mars-recorded" /> : <small>{Math.round(distance(snapshot.player, site) * GAME_METERS_PER_UNIT)} m</small>}</button> })}</div></> : <div className="mars-creature-journal"><p>Original game creatures. No living creatures like these have been confirmed on Mars.</p>{SPECIES.map(species => <div key={species.id}><Sprite species={species.id} /><div><h3>{species.name}</h3><span>{species.kind}</span><p>{snapshot.encountered.includes(species.id) ? species.description : 'Encounter this creature to add its field note.'}</p></div></div>)}<div className="mars-nearby"><strong>Nearby creatures</strong>{creatures.current.map(creature => <button key={creature.id} onClick={() => setRoute(creature)}>{SPECIES.find(s => s.id === creature.species).name}<span>{Math.round(distance(snapshot.player, creature) * GAME_METERS_PER_UNIT)} m <ChevronRight size={12} /></span></button>)}</div></div>}
       <section className="mars-route-plan" aria-label="Selected Marswalk destination"><div><MapPin size={13} /><span>Selected destination</span></div><strong>{selected.name}</strong><span>{selected.latitude.toFixed(6)}° N · {selected.longitude.toFixed(6)}° E</span><dl><div><dt>Distance</dt><dd>{Math.round(marswalkPlan.oneWayMetres)} m</dd></div><div><dt>Via camp</dt><dd>{Math.round(marswalkPlan.roundTripMetres)} m</dd></div><div><dt>Budget</dt><dd>{marswalkPlan.oxygenPercent}%</dd></div></dl><small>Illustrative 4 h EVA budget with 15 min science time and a 1 h reserve. Straight-line route; slope and obstacles are not evaluated.</small><button onClick={() => setRoute(selected)}><Compass size={13} />Walk toward destination<ChevronRight size={13} /></button></section>
       <div className="mars-upgrade"><div><ScanLine size={17} /><span>Scanner level {snapshot.scannerLevel}<small>{SCAN_RANGES[snapshot.scannerLevel] * GAME_METERS_PER_UNIT} m scan range</small></span></div><button onClick={upgrade} disabled={snapshot.scannerLevel >= 3 || snapshot.research < upgradeCost}>{snapshot.scannerLevel >= 3 ? 'Max level' : `Upgrade · ${upgradeCost}`}<Gem size={12} /></button></div>
     </aside>}
@@ -312,7 +341,7 @@ export default function MarsGame({ onExit, reducedMotion, pausedExternally = fal
 
     <div className="mars-dpad" role="group" aria-label="Movement controls">{[['w', ArrowUp, 'Walk north'], ['a', ArrowLeft, 'Walk west'], ['s', ArrowDown, 'Walk south'], ['d', ArrowRight, 'Walk east']].map(([key, Icon, label]) => <button key={key} className={`mars-key-${key}`} aria-label={label} onPointerDown={event => pressDirection(event, key)} onPointerUp={() => keys.current.delete(key)} onPointerCancel={() => keys.current.delete(key)} onLostPointerCapture={() => keys.current.delete(key)} onKeyDown={event => { if (event.key === ' ' || event.key === 'Enter') { event.preventDefault(); if (!blocked.current) { keys.current.add(key); walkTarget.current = null } } }} onKeyUp={() => keys.current.delete(key)} onBlur={() => keys.current.delete(key)}><Icon size={18} /></button>)}<span>WASD / ARROWS</span></div>
 
-    <div className="mars-interaction"><div className="mars-interaction-copy">{nearest ? <><span>{nearest.type === 'site' ? 'LANDMARK IN RANGE' : nearest.type === 'camp' ? 'SURVEY OBJECTIVE READY' : 'CREATURE IN RANGE'}</span><strong>{nearest.type === 'site' ? nearest.item.name : nearest.type === 'camp' ? 'Bring the beacon online' : SPECIES.find(s => s.id === nearest.item.species).name}</strong></> : <><span>FOLLOW YOUR CURIOSITY</span><strong>Click to walk. Explore what’s nearby.</strong></>}</div>{nearest ? <button onClick={() => interact.current?.()}>{nearest.type === 'site' ? <ScanLine size={17} /> : nearest.type === 'camp' ? <Radio size={17} /> : <Zap size={17} />}{nearest.type === 'site' ? 'Scan' : nearest.type === 'camp' ? 'Activate' : 'Encounter'}<kbd>E</kbd></button> : <button onClick={() => setRoute(SITES.find(site => !snapshot.discoveries.includes(site.id)) || CAMP)}><Compass size={16} />{snapshot.discoveries.length === 6 ? 'Walk to camp' : 'Find a landmark'}</button>}</div>
+    <div className="mars-interaction"><div className="mars-interaction-copy">{nearest ? <><span>{nearest.type === 'site' ? nearest.item.isSampleSite ? 'NASA SAMPLE SITE IN RANGE' : 'LANDMARK IN RANGE' : nearest.type === 'camp' ? 'SURVEY OBJECTIVE READY' : 'CREATURE IN RANGE'}</span><strong>{nearest.type === 'site' ? nearest.item.name : nearest.type === 'camp' ? 'Bring the beacon online' : SPECIES.find(s => s.id === nearest.item.species).name}</strong></> : <><span>FOLLOW YOUR CURIOSITY</span><strong>Click to walk. Explore what’s nearby.</strong></>}</div>{nearest ? <button onClick={() => interact.current?.()}>{nearest.type === 'site' ? <ScanLine size={17} /> : nearest.type === 'camp' ? <Radio size={17} /> : <Zap size={17} />}{nearest.type === 'site' ? snapshot.discoveries.includes(nearest.item.id) ? 'View scan' : 'Scan' : nearest.type === 'camp' ? 'Activate' : 'Encounter'}<kbd>E</kbd></button> : <button onClick={() => setRoute(SITES.find(site => !snapshot.discoveries.includes(site.id)) || CAMP)}><Compass size={16} />{snapshot.discoveries.length === SITES.length ? 'Walk to camp' : 'Find a site'}</button>}</div>
 
     <div className="mars-map-footnote"><span>NASA Perseverance traverse · Illustrative terrain and wind · Fictional creatures</span><button onClick={restart}><RotateCcw size={11} />New expedition</button></div>
     {toast && <div className="mars-notice" role="status"><Sparkles size={15} /><span>{toast}</span></div>}

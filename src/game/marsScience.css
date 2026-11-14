@@ -276,3 +276,148 @@
     right: 14px;
   }
 }
+
+.mars-sample-record {
+  margin-top: 14px;
+  padding: 13px;
+  border: 1px solid #f3ca9140;
+  border-radius: 4px;
+  background: #f3ca910d;
+}
+
+.mars-sample-record strong {
+  display: block;
+  color: #f1dfbd;
+  font-size: 11px;
+}
+
+.mars-sample-record ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0;
+  margin: 10px 0;
+  list-style: none;
+}
+
+.mars-sample-record li {
+  padding: 5px 7px;
+  border: 1px solid #f3ca9150;
+  border-radius: 3px;
+  color: #f3ca91;
+  font-size: 10px;
+}
+
+.mars-sample-record small {
+  display: block;
+  color: #bfc5b9;
+  font-size: 9px;
+  line-height: 1.6;
+}
+
+/* The play field leads; mission controls sit in two compact edge rails. */
+.mars-game .mars-status-bar .mars-save-state,
+.mars-game .mars-status-bar .mars-wind-status {
+  display: none;
+}
+
+.mars-game .mars-minimap {
+  top: 145px;
+  left: 24px;
+  width: 166px;
+}
+
+.mars-game .mars-minimap > div:first-child {
+  font-size: 8px;
+}
+
+.mars-game .mars-minimap > canvas {
+  width: 150px;
+  height: 150px;
+}
+
+.mars-game .mars-minimap > .mars-map-switches {
+  gap: 4px;
+  padding: 7px 1px 0;
+}
+
+.mars-game .mars-map-switches button {
+  min-height: 36px;
+  font-size: 9px;
+}
+
+.mars-game .mars-objective {
+  top: auto;
+  bottom: 55px;
+  left: 24px;
+  width: 216px;
+  padding: 14px;
+  max-height: 224px;
+  overflow: auto;
+}
+
+.mars-game .mars-objective.is-complete {
+  width: max-content;
+  max-width: 190px;
+  bottom: 34px;
+  padding: 10px 12px;
+}
+
+.mars-game .mars-objective.is-complete > p,
+.mars-game .mars-objective.is-complete > ul,
+.mars-game .mars-objective.is-complete > button {
+  display: none;
+}
+
+.mars-game .mars-objective.is-complete h2 {
+  font-size: 11px;
+}
+
+.mars-game .mars-journal-toggle {
+  top: 98px;
+  right: 24px;
+  width: 226px;
+}
+
+.mars-game .mars-journal {
+  display: flex;
+  flex-direction: column;
+  top: 151px;
+  right: 24px;
+  bottom: 105px;
+  width: min(330px, calc(100% - 48px));
+}
+
+.mars-game .mars-journal-tabs { order: -1; flex: none; }
+.mars-game .mars-site-detail { order: 0; flex: none; }
+.mars-game .mars-site-list {
+  order: 1;
+  flex: none;
+  max-height: 190px;
+  overflow: auto;
+  border-top: 1px solid #e9dfc923;
+}
+.mars-game .mars-route-plan { order: 2; flex: none; }
+.mars-game .mars-upgrade { order: 3; flex: none; }
+.mars-game .mars-site-list > button { min-height: 44px; padding-block: 9px; }
+
+.mars-game .mars-map-footnote > span { display: none; }
+
+@media (max-width: 760px) {
+  .mars-game .mars-minimap { top: 122px; left: 16px; width: 144px; }
+  .mars-game .mars-minimap > canvas { width: 128px; height: 128px; }
+  .mars-game .mars-objective { left: 16px; bottom: 180px; width: 175px; max-height: 170px; }
+  .mars-game .mars-objective.is-complete { bottom: 172px; }
+  .mars-game .mars-journal-toggle { top: 122px; right: 16px; width: 158px; }
+  .mars-game .mars-journal { top: 170px; right: 16px; bottom: 175px; width: min(300px, calc(100% - 32px)); }
+}
+
+@media (max-width: 480px) {
+  .mars-game .mars-minimap { left: 12px; width: 128px; }
+  .mars-game .mars-minimap > canvas { width: 112px; height: 112px; }
+  .mars-game .mars-map-switches button { font-size: 8px; padding-inline: 2px; }
+  .mars-game .mars-objective { left: 12px; bottom: 170px; max-height: 155px; }
+  .mars-game .mars-objective.is-complete { bottom: 157px; }
+  .mars-game .mars-journal-toggle { right: 12px; width: 144px; }
+  .mars-game .mars-journal { right: 12px; bottom: 170px; width: min(290px, calc(100% - 24px)); }
+}
