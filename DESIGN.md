@@ -1,5 +1,5 @@
 ---
-name: Orbital
+name: S.U.N.A IV
 description: A cinematic orbital atlas with quiet controls and planetary imagery.
 colors:
   bg: "#0a0e12"
@@ -104,13 +104,13 @@ components:
     height: "100%"
 ---
 
-# Design System: Orbital
+# Design System: S.U.N.A IV
 
 ## Overview
 
 **Creative North Star: "Orbital atlas"**
 
-Orbital presents a cinematic space journey through real planetary imagery, near-black blue surfaces, ivory typography, and warm peach actions. The interface is quiet around the scene: oversized world names establish identity while compact labels, fine dividers, and small controls provide an atlas-like reading rhythm.
+S.U.N.A IV presents a cinematic space journey through real planetary imagery, near-black blue surfaces, ivory typography, and warm peach actions. The interface is quiet around the scene: oversized world names establish identity while compact labels, fine dividers, and small controls provide an atlas-like reading rhythm.
 
 The visual language combines Manrope's clear geometry with a faint, condensed planetary watermark. Motion introduces a change in perspective; the planet imagery supplies the spectacle. This document describes the built source, not a rendered review. Browser verification was unavailable.
 

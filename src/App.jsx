@@ -45,7 +45,7 @@ function Brand() {
         <circle cx="20" cy="20" r="10" />
         <ellipse cx="20" cy="20" rx="19" ry="6.5" transform="rotate(-35 20 20)" />
       </svg>
-      orbital<span className="brand-dot">.</span>
+      S.U.N.A IV
     </span>
   )
 }
@@ -139,7 +139,7 @@ function InfoPanel({ panel, onClose, onStartExpedition }) {
           <>
             <span className="panel-symbol"><Orbit size={30} /></span>
             <h2 id="panel-title">A different<br />perspective.</h2>
-            <p>Orbital is a Martian exploration concept for NASA Space Apps. Powered by Cesium 3D planetary mapping and real NASA Mars Trek imagery.</p>
+            <p>S.U.N.A IV is a Martian exploration concept for NASA Space Apps. Powered by Cesium 3D planetary mapping and real NASA Mars Trek imagery.</p>
             <div className="feature-list">
               <div><Globe2 /><span><strong>Cesium 3D Mars Globe</strong><small>Interactive Martian globe with custom atmospheric scattering and 3D terrain.</small></span></div>
               <div><Layers3 /><span><strong>NASA Science Layers</strong><small>Drape Jezero CTX (6m/px), HiRISE (25cm/px), and global MOLA elevation maps.</small></span></div>
@@ -344,7 +344,7 @@ export default function App() {
       <div className="experience" inert={intro}>
         <a className="skip-link" href="#explorer">Skip to explorer</a>
         <header className="site-header">
-          <button className="brand-button" aria-label="Orbital home" onClick={() => { setMode('orbit'); selectLandmark('global'); setReset(n => n + 1) }}>
+          <button className="brand-button" aria-label="S.U.N.A IV home" onClick={() => { setMode('orbit'); selectLandmark('global'); setReset(n => n + 1) }}>
             <Brand />
           </button>
           <nav aria-label="Main navigation">

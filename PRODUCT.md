@@ -30,4 +30,4 @@ The user confirmed a cinematic space journey for this test website.
 
 ## Open Decisions
 
-The final project name and NASA Space Apps challenge remain undecided. Orbital is the working demo name.
+The project name is S.U.N.A IV. The final NASA Space Apps challenge remains undecided.
